@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-22M44XYEKM"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-22M44XYEKM');
+</script>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>AuRA Decision Maker</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#050816" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    /* ── TOKENS ───────────────────────────────────────────── */
+    :root {
+      --bg:         #050816;
+      --glass:      rgba(255,255,255,0.04);
+      --glass-border: rgba(255,255,255,0.10);
+      --glass-hover: rgba(255,255,255,0.08);
+      --cyan:       #22d3ee;
+      --violet:     #818cf8;
+      --pink:       #f472b6;
+      --text:       #f1f5f9;
+      --muted:      #64748b;
+      --radius:     20px;
+      --font-head:  'Syne', sans-serif;
+      --font-body:  'DM Sans', sans-serif;
+    }
+
+    /* ── RESET ────────────────────────────────────────────── */
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+    /* ── BODY / BACKGROUND ────────────────────────────────── */
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding-bottom: 60px;
+    }
+
+    /* Animated mesh background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(34,211,238,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, rgba(129,140,248,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 50% 50%, rgba(244,114,182,0.06) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+      animation: meshShift 12s ease-in-out infinite alternate;
+    }
+    @keyframes meshShift {
+      from { opacity: 1; transform: scale(1); }
+      to   { opacity: 0.7; transform: scale(1.06); }
+    }
+
+    /* Noise grain overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.4;
+    }
+
+    /* ── LAYOUT WRAPPER ───────────────────────────────────── */
+    .app-wrap {
+      position: relative;
+      z-index: 2;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 0 18px;
+    }
+
+    /* ── WELCOME MODAL ────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(5,8,22,0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+    .modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
+
+    .modal-box {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.14);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: 24px;
+      padding: 36px 28px;
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(34,211,238,0.08) inset;
+      animation: slideUp 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(40px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+
+    .modal-emoji { font-size: 42px; margin-bottom: 12px; display: block; }
+
+    .modal-box h2 {
+      font-family: var(--font-head);
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .modal-box p { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
+
+    .modal-input {
+      width: 100%;
+      padding: 14px 18px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 16px;
+      font-family: var(--font-body);
+      outline: none;
+      text-align: center;
+      margin-bottom: 16px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .modal-input:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(34,211,238,0.12);
+    }
+
+    /* ── GLASS BUTTON ─────────────────────────────────────── */
+    .btn-glow {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-family: var(--font-head);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      color: #050816;
+      box-shadow: 0 4px 20px rgba(34,211,238,0.3);
+    }
+    .btn-glow:active { transform: scale(0.97); opacity: 0.9; }
+    .btn-glow:hover  { box-shadow: 0 6px 28px rgba(34,211,238,0.45); }
+
+    /* ── HEADER ───────────────────────────────────────────── */
+    .header {
+      padding-top: 52px;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .greeting-pill {
+      display: none;
+      margin: 0 auto 16px;
+      width: fit-content;
+      padding: 6px 16px;
+      background: rgba(34,211,238,0.10);
+      border: 1px solid rgba(34,211,238,0.22);
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--cyan);
+      letter-spacing: 0.2px;
+    }
+
+    .header h1 {
+      font-family: var(--font-head);
+      font-size: clamp(26px, 7vw, 34px);
+      font-weight: 800;
+      background: linear-gradient(135deg, #22d3ee 0%, #818cf8 50%, #f472b6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.15;
+      margin-bottom: 6px;
+    }
+
+    .header-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+
+    .wheel-title-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 2px dashed rgba(34,211,238,0.35);
+      color: var(--text);
+      font-family: var(--font-head);
+      font-size: 17px;
+      font-weight: 700;
+      text-align: center;
+      padding: 8px 4px;
+      outline: none;
+      transition: border-color 0.2s;
+      caret-color: var(--cyan);
+    }
+    .wheel-title-input::placeholder { color: rgba(255,255,255,0.22); font-weight: 600; }
+    .wheel-title-input:focus { border-bottom-color: var(--cyan); }
+
+    /* ── WHEEL SECTION ────────────────────────────────────── */
+    .wheel-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 28px 0 24px;
+    }
+
+    .wheel-outer {
+      position: relative;
+      width: min(320px, 88vw);
+      height: min(320px, 88vw);
+    }
+
+    /* Glow ring behind wheel */
+    .wheel-outer::before {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      background: conic-gradient(var(--cyan), var(--violet), var(--pink), var(--cyan));
+      opacity: 0.25;
+      filter: blur(12px);
+      animation: ringPulse 3s ease-in-out infinite alternate;
+      z-index: 0;
+    }
+    @keyframes ringPulse {
+      from { opacity: 0.18; transform: scale(0.98); }
+      to   { opacity: 0.35; transform: scale(1.02); }
+    }
+
+    canvas {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      display: block;
+    }
+
+    /* Pointer */
+    .pointer {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      width: 0;
+      height: 0;
+      border-left: 14px solid transparent;
+      border-right: 14px solid transparent;
+      border-top: 32px solid #f87171;
+      filter: drop-shadow(0 0 8px rgba(248,113,113,0.7));
+    }
+
+    /* Spin stats row */
+    .spin-stats {
+      display: flex;
+      gap: 12px;
+      margin-top: 18px;
+      justify-content: center;
+    }
+    .stat-pill {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 100px;
+      padding: 5px 14px;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .stat-pill span { color: var(--cyan); font-weight: 700; }
+
+    /* ── RESULT BANNER ────────────────────────────────────── */
+    .result-banner {
+      width: 100%;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      text-align: center;
+      font-family: var(--font-head);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 16px;
+      transition: all 0.4s ease;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .result-banner.winner {
+      border-color: rgba(34,211,238,0.35);
+      background: rgba(34,211,238,0.06);
+      color: var(--text);
+      box-shadow: 0 0 30px rgba(34,211,238,0.10);
+    }
+
+    /* ── GLASS CARD ───────────────────────────────────────── */
+    .glass-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      padding: 20px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      margin-bottom: 14px;
+      transition: border-color 0.2s;
+    }
+    .glass-card:hover { border-color: rgba(255,255,255,0.16); }
+
+    .card-label {
+      font-family: var(--font-head);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    /* ── SPIN BUTTON ──────────────────────────────────────── */
+    .btn-spin {
+      width: 100%;
+      padding: 18px;
+      border: none;
+      border-radius: 14px;
+      font-family: var(--font-head);
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      background: linear-gradient(135deg, #22d3ee, #818cf8, #f472b6);
+      background-size: 200% 200%;
+      color: #050816;
+      box-shadow: 0 6px 28px rgba(34,211,238,0.35);
+      transition: transform 0.15s, box-shadow 0.15s, background-position 0.4s;
+      margin-bottom: 14px;
+      animation: gradientShift 4s ease-in-out infinite;
+    }
+    @keyframes gradientShift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .btn-spin:active  { transform: scale(0.97); }
+    .btn-spin:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ── INPUT ROW ────────────────────────────────────────── */
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .glass-input {
+      flex: 1;
+      padding: 13px 16px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      caret-color: var(--cyan);
+    }
+    .glass-input::placeholder { color: rgba(255,255,255,0.25); }
+    .glass-input:focus {
+      border-color: rgba(34,211,238,0.45);
+      box-shadow: 0 0 0 3px rgba(34,211,238,0.08);
+    }
+
+    .btn-add {
+      padding: 13px 18px;
+      background: rgba(34,211,238,0.12);
+      border: 1px solid rgba(34,211,238,0.25);
+      border-radius: 12px;
+      color: var(--cyan);
+      font-family: var(--font-head);
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    .btn-add:hover {
+      background: rgba(34,211,238,0.20);
+      box-shadow: 0 0 12px rgba(34,211,238,0.18);
+    }
+    .btn-add:active { transform: scale(0.96); }
+
+    /* ── OPTION TAGS ──────────────────────────────────────── */
+    .tags-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .option-tag {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      transition: border-color 0.2s, transform 0.15s;
+      animation: tagIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes tagIn {
+      from { transform: scale(0.7); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    .option-tag:hover { border-color: rgba(255,255,255,0.22); }
+
+    .tag-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .tag-del {
+      color: rgba(248,113,113,0.6);
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      font-weight: 700;
+      transition: color 0.15s, transform 0.15s;
+    }
+    .tag-del:hover { color: #f87171; transform: scale(1.2); }
+
+    /* ── PRESETS ──────────────────────────────────────────── */
+    .presets-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .preset-btn {
+      padding: 7px 14px;
+      background: rgba(129,140,248,0.08);
+      border: 1px solid rgba(129,140,248,0.20);
+      border-radius: 100px;
+      color: var(--violet);
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    .preset-btn:hover {
+      background: rgba(129,140,248,0.18);
+      box-shadow: 0 0 10px rgba(129,140,248,0.15);
+    }
+    .preset-btn:active { transform: scale(0.95); }
+
+    /* ── HISTORY ──────────────────────────────────────────── */
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 220px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.1) transparent;
+    }
+
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px;
+      animation: tagIn 0.25s ease;
+    }
+    .history-winner {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text);
+    }
+    .history-meta {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .history-empty {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 20px 0;
+    }
+
+    /* ── ACTION BUTTONS ROW ───────────────────────────────── */
+    .actions-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .btn-action {
+      flex: 1;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-action:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.18);
+    }
+    .btn-action:active { transform: scale(0.97); }
+
+    /* ── WHATSAPP SHARE ───────────────────────────────────── */
+    .btn-whatsapp {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #25D366, #128C7E);
+      color: white;
+      font-family: var(--font-head);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(37,211,102,0.3);
+      transition: transform 0.15s, box-shadow 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-whatsapp:hover { box-shadow: 0 6px 28px rgba(37,211,102,0.45); }
+    .btn-whatsapp:active { transform: scale(0.97); }
+
+    /* ── SPINNING STATE ───────────────────────────────────── */
+    .wheel-outer.spinning canvas {
+      animation: wheelGlow 0.5s ease-in-out infinite alternate;
+    }
+    @keyframes wheelGlow {
+      from { box-shadow: 0 0 20px rgba(34,211,238,0.2); }
+      to   { box-shadow: 0 0 50px rgba(34,211,238,0.5); }
+    }
+
+    /* ── TOAST ────────────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: rgba(34,211,238,0.12);
+      border: 1px solid rgba(34,211,238,0.30);
+      color: var(--cyan);
+      backdrop-filter: blur(16px);
+      padding: 12px 22px;
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 999;
+      transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s;
+      opacity: 0;
+      white-space: nowrap;
+    }
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* ── FOOTER ───────────────────────────────────────────── */
+    .footer {
+      text-align: center;
+      margin-top: 32px;
+      margin-bottom: 20px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .footer span {
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 700;
+    }
+
+    /* ── SCROLLBAR ────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<!-- ── WELCOME MODAL ──────────────────────────────────────────── -->
+<div class="modal-overlay" id="welcomeModal">
+  <div class="modal-box">
+    <span class="modal-emoji">🎯</span>
+    <h2>Hey, decision-maker.</h2>
+    <p>What should I call you?</p>
+    <input class="modal-input" type="text" id="userNameInput"
+           placeholder="Your name..." autocomplete="given-name" />
+    <button class="btn-glow" onclick="saveName()">Let's Spin →</button>
+  </div>
+</div>
+
+<!-- ── TOAST NOTIFICATION ─────────────────────────────────────── -->
+<div class="toast" id="toast"></div>
+
+<!-- ── MAIN APP ───────────────────────────────────────────────── -->
+<div class="app-wrap">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="greeting-pill" id="greetingPill"></div>
+    <h1>Decision Maker</h1>
+    <p class="header-sub">Can't decide? Let the wheel choose.</p>
+    <input class="wheel-title-input" type="text" id="wheelTitle"
+           placeholder="Add a title (e.g. Messi vs Ronaldo)" maxlength="60" />
+  </div>
+
+  <!-- Wheel -->
+  <div class="wheel-section">
+    <div class="wheel-outer" id="wheelOuter">
+      <div class="pointer"></div>
+      <canvas id="wheelCanvas" width="500" height="500"></canvas>
+    </div>
+
+    <!-- Spin stats -->
+    <div class="spin-stats">
+      <div class="stat-pill">Options: <span id="statOptions">6</span></div>
+      <div class="stat-pill">Spins today: <span id="statSpins">0</span></div>
+      <div class="stat-pill">🏆 <span id="statChamp">—</span></div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-banner" id="resultBanner">Tap SPIN to decide! 🎯</div>
+
+  <!-- Spin Button -->
+  <button class="btn-spin" id="spinBtn">⚡ SPIN THE WHEEL</button>
+
+  <!-- Action Buttons -->
+  <div class="actions-row">
+    <button class="btn-action" onclick="shuffleOptions()">🔀 Shuffle</button>
+    <button class="btn-action" onclick="clearAll()">🗑 Clear All</button>
+    <button class="btn-action" onclick="exportResult()">📋 Copy</button>
+  </div>
+
+  <!-- Add Option -->
+  <div class="glass-card">
+    <div class="card-label">Add Options</div>
+    <div class="input-row">
+      <input class="glass-input" type="text" id="newOption"
+             placeholder="Add a new option..." maxlength="30" />
+      <button class="btn-add" id="addBtn">+ Add</button>
+    </div>
+    <div class="tags-wrap" id="optionTags"></div>
+  </div>
+
+  <!-- Presets -->
+  <div class="glass-card">
+    <div class="card-label">Quick Presets</div>
+    <div class="presets-row" id="presetsRow"></div>
+  </div>
+
+  <!-- Spin History -->
+  <div class="glass-card">
+    <div class="card-label">Spin History</div>
+    <div class="history-list" id="historyList">
+      <div class="history-empty">No spins yet — let's go! 🚀</div>
+    </div>
+  </div>
+
+  <!-- Share -->
+  <button class="btn-whatsapp" onclick="shareToWhatsApp()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+    </svg>
+    Share on WhatsApp
+  </button>
+
+  <!-- Footer -->
+  <div class="footer">
+    Powered by <span>AuRA Tech</span> · Built for decisive people
+  </div>
+
+</div><!-- /app-wrap -->
+
+<script>
+// ── CONSTANTS ──────────────────────────────────────────────────
+const canvas  = document.getElementById('wheelCanvas');
+const ctx     = canvas.getContext('2d');
+const spinBtn = document.getElementById('spinBtn');
+const addBtn  = document.getElementById('addBtn');
+const newOptionInput  = document.getElementById('newOption');
+const resultBanner    = document.getElementById('resultBanner');
+const optionTagsEl    = document.getElementById('optionTags');
+const historyListEl   = document.getElementById('historyList');
+const wheelOuter      = document.getElementById('wheelOuter');
+
+// Slice colour palette — rich, premium
+const PALETTE = [
+  "#06b6d4","#818cf8","#f472b6","#34d399","#f59e0b",
+  "#ef4444","#a78bfa","#22d3ee","#fb923c","#4ade80",
+  "#e879f9","#facc15"
+];
+
+// Preset packs
+const PRESETS = [
+  { label: "🍕 Food Night",    opts: ["Pizza","Burgers","Tacos","Sushi","Pasta","Ramen"] },
+  { label: "🎬 Movie Mode",    opts: ["Action","Comedy","Horror","Thriller","Romance","Sci-Fi"] },
+  { label: "💪 Workout",       opts: ["Run 5k","Gym","Yoga","Swim","Cycling","HIIT"] },
+  { label: "🎮 Game Night",    opts: ["FIFA","COD","Chess","Monopoly","Poker","Among Us"] },
+  { label: "✈️ Travel",        opts: ["Paris","Tokyo","Dubai","NYC","Bali","Cape Town"] },
+  { label: "💆 Self-Care",     opts: ["Nap","Read","Meditate","Walk","Journal","Spa"] },
+];
+
+// ── STATE ──────────────────────────────────────────────────────
+let options      = ["Pizza","Burgers","Tacos","Sushi","Salad","Steak"];
+let currentAngle = 0;
+let isSpinning   = false;
+let spinHistory  = JSON.parse(localStorage.getItem("dm_history") || "[]");
+let todaySpins   = parseInt(localStorage.getItem("dm_today_spins") || "0");
+let todayDate    = localStorage.getItem("dm_today_date") || "";
+let champion     = localStorage.getItem("dm_champion") || "—";
+
+// Reset daily spin counter if new day
+const todayStr = new Date().toDateString();
+if (todayDate !== todayStr) {
+  todaySpins = 0;
+  todayDate  = todayStr;
+  localStorage.setItem("dm_today_date", todayStr);
+  localStorage.setItem("dm_today_spins", "0");
+}
+
+// ── DRAW WHEEL ──────────────────────────────────────────────────
+function drawWheel() {
+  const size = canvas.width;
+  const cx   = size / 2;
+  const cy   = size / 2;
+  const r    = size / 2 - 4;
+
+  ctx.clearRect(0, 0, size, size);
+
+  const n       = options.length;
+  const arcSize = (2 * Math.PI) / n;
+
+  for (let i = 0; i < n; i++) {
+    const startAngle = currentAngle + i * arcSize;
+    const endAngle   = startAngle + arcSize;
+
+    // Slice
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fillStyle = PALETTE[i % PALETTE.length];
+    ctx.fill();
+
+    // Subtle border
+    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Text
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(startAngle + arcSize / 2);
+
+    const maxLen   = 12;
+    const label    = options[i].length > maxLen ? options[i].slice(0, maxLen) + "…" : options[i];
+    const fontSize = n > 8 ? 14 : n > 6 ? 16 : 18;
+
+    ctx.font = `bold ${fontSize}px 'Syne', sans-serif`;
+    ctx.fillStyle = "rgba(255,255,255,0.95)";
+    ctx.textAlign = "right";
+    ctx.shadowColor = "rgba(0,0,0,0.6)";
+    ctx.shadowBlur  = 4;
+    ctx.fillText(label, r - 14, fontSize / 3);
+    ctx.restore();
+  }
+
+  // Centre dot
+  ctx.beginPath();
+  ctx.arc(cx, cy, 14, 0, 2 * Math.PI);
+  ctx.fillStyle = "#050816";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.25)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  updateTags();
+  updateStats();
+}
+
+// ── TAGS ────────────────────────────────────────────────────────
+function updateTags() {
+  optionTagsEl.innerHTML = "";
+  options.forEach((opt, i) => {
+    const tag = document.createElement("div");
+    tag.className = "option-tag";
+    tag.innerHTML = `
+      <span class="tag-dot" style="background:${PALETTE[i % PALETTE.length]}"></span>
+      <span>${opt}</span>
+      <span class="tag-del" onclick="removeOption(${i})">×</span>`;
+    optionTagsEl.appendChild(tag);
+  });
+}
+
+// ── STATS ───────────────────────────────────────────────────────
+function updateStats() {
+  document.getElementById("statOptions").textContent = options.length;
+  document.getElementById("statSpins").textContent   = todaySpins;
+  document.getElementById("statChamp").textContent   = champion.length > 10
+    ? champion.slice(0, 10) + "…" : champion;
+}
+
+// ── ADD / REMOVE ─────────────────────────────────────────────────
+function addOption() {
+  const val = newOptionInput.value.trim();
+  if (!val) return;
+  if (options.length >= 12) { showToast("Max 12 options! Remove one first."); return; }
+  if (options.map(o=>o.toLowerCase()).includes(val.toLowerCase())) {
+    showToast("That option already exists!"); return;
+  }
+  options.push(val);
+  newOptionInput.value = "";
+  drawWheel();
+  showToast(`"${val}" added ✓`);
+}
+
+window.removeOption = function(index) {
+  if (options.length <= 2) { showToast("Need at least 2 options!"); return; }
+  const removed = options.splice(index, 1)[0];
+  drawWheel();
+  showToast(`"${removed}" removed`);
+};
+
+// ── SHUFFLE ──────────────────────────────────────────────────────
+function shuffleOptions() {
+  for (let i = options.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [options[i], options[j]] = [options[j], options[i]];
+  }
+  drawWheel();
+  showToast("Options shuffled! 🔀");
+}
+
+// ── CLEAR ALL ────────────────────────────────────────────────────
+function clearAll() {
+  if (!confirm("Clear all options and start fresh?")) return;
+  options = [];
+  drawWheel();
+  resultBanner.textContent = "Add at least 2 options to spin!";
+  resultBanner.classList.remove("winner");
+  showToast("Board cleared 🗑");
+}
+
+// ── EXPORT / COPY ────────────────────────────────────────────────
+function exportResult() {
+  const title   = document.getElementById("wheelTitle").value.trim() || "Decision Maker";
+  const winner  = resultBanner.querySelector("strong")?.textContent || "No spin yet";
+  const optList = options.join(", ");
+  const text    = `🎯 ${title}\n🏆 Winner: ${winner}\n📋 Options: ${optList}\n\nPowered by AuRA Tech Decision Maker\nhttps://blessingay962.github.io/DecisionMaker/`;
+  navigator.clipboard.writeText(text).then(() => showToast("Copied to clipboard! 📋"))
+    .catch(() => showToast("Copy not supported on this browser"));
+}
+
+// ── SPIN LOGIC ───────────────────────────────────────────────────
+function spinWheel() {
+  if (isSpinning || options.length < 2) {
+    if (options.length < 2) showToast("Add at least 2 options first!");
+    return;
+  }
+
+  isSpinning = true;
+  spinBtn.disabled = true;
+  spinBtn.textContent = "⏳ Spinning…";
+  resultBanner.textContent = "Spinning…";
+  resultBanner.classList.remove("winner");
+  wheelOuter.classList.add("spinning");
+
+  // Physics: random full rotations + random landing
+  const extraRotations  = (Math.floor(Math.random() * 5) + 5) * 2 * Math.PI;
+  const targetOffset    = Math.random() * 2 * Math.PI;
+  const totalRotation   = extraRotations + targetOffset;
+  const duration        = Math.random() * 2000 + 4500; // 4.5–6.5s
+  const startAngle      = currentAngle;
+  const startTime       = performance.now();
+
+  function easeOut(t) {
+    return 1 - Math.pow(1 - t, 4); // Quartic ease-out
+  }
+
+  function tick(now) {
+    const elapsed  = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased    = easeOut(progress);
+
+    currentAngle = startAngle + totalRotation * eased;
+    drawWheel();
+
+    if (progress < 1) {
+      requestAnimationFrame(tick);
+    } else {
+      currentAngle = startAngle + totalRotation;
+      drawWheel();
+      finishSpin();
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+function finishSpin() {
+  isSpinning = false;
+  wheelOuter.classList.remove("spinning");
+  spinBtn.disabled = false;
+  spinBtn.textContent = "⚡ SPIN THE WHEEL";
+
+  const winner = determineWinner();
+
+  // Update result banner
+  resultBanner.innerHTML = `🏆 Winner: <strong style="color:var(--cyan)">${winner}</strong>`;
+  resultBanner.classList.add("winner");
+
+  // Confetti 🎉
+  confetti({
+    particleCount: 120,
+    spread: 70,
+    origin: { y: 0.55 },
+    colors: ["#22d3ee","#818cf8","#f472b6","#34d399","#f59e0b"],
+  });
+
+  // Update stats
+  todaySpins++;
+  champion = winner;
+  localStorage.setItem("dm_today_spins", todaySpins);
+  localStorage.setItem("dm_champion", champion);
+  updateStats();
+
+  // Add to history
+  const entry = {
+    winner,
+    title: document.getElementById("wheelTitle").value.trim() || "Untitled",
+    time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+  };
+  spinHistory.unshift(entry);
+  if (spinHistory.length > 20) spinHistory.pop();
+  localStorage.setItem("dm_history", JSON.stringify(spinHistory));
+  renderHistory();
+}
+
+function determineWinner() {
+  const n        = options.length;
+  const arcSize  = (2 * Math.PI) / n;
+  // Pointer is at top = 270° = 3π/2
+  const pointer      = 1.5 * Math.PI;
+  const normalised   = ((pointer - currentAngle) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+  const winningIndex = Math.floor(normalised / arcSize) % n;
+  return options[winningIndex];
+}
+
+// ── HISTORY ──────────────────────────────────────────────────────
+function renderHistory() {
+  if (spinHistory.length === 0) {
+    historyListEl.innerHTML = '<div class="history-empty">No spins yet — let\'s go! 🚀</div>';
+    return;
+  }
+  historyListEl.innerHTML = spinHistory.map(h => `
+    <div class="history-item">
+      <div>
+        <div class="history-winner">🏆 ${h.winner}</div>
+        <div class="history-meta">${h.title}</div>
+      </div>
+      <div class="history-meta">${h.time}</div>
+    </div>`).join("");
+}
+
+// ── PRESETS ───────────────────────────────────────────────────────
+function renderPresets() {
+  const row = document.getElementById("presetsRow");
+  row.innerHTML = PRESETS.map((p, i) => `
+    <button class="preset-btn" onclick="loadPreset(${i})">${p.label}</button>
+  `).join("");
+}
+
+function loadPreset(i) {
+  options = [...PRESETS[i].opts];
+  document.getElementById("wheelTitle").value = PRESETS[i].label.replace(/^\S+\s/,"");
+  drawWheel();
+  resultBanner.textContent = "Preset loaded — ready to spin! 🎯";
+  resultBanner.classList.remove("winner");
+  showToast(`${PRESETS[i].label} loaded ✓`);
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.classList.add("show");
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.classList.remove("show"), 2400);
+}
+
+// ── WELCOME / NAME SYSTEM ─────────────────────────────────────────
+window.onload = function() {
+  const saved = localStorage.getItem("dm_user");
+  if (saved) {
+    showGreeting(saved);
+  } else {
+    document.getElementById("welcomeModal").classList.add("active");
+    setTimeout(() => document.getElementById("userNameInput").focus(), 400);
+  }
+  drawWheel();
+  renderHistory();
+  renderPresets();
+};
+
+function showGreeting(name) {
+  const pill = document.getElementById("greetingPill");
+  const hour = new Date().getHours();
+  const tod  = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
+  pill.textContent = `Good ${tod}, ${name} 👋`;
+  pill.style.display = "block";
+}
+
+window.saveName = function() {
+  const name = document.getElementById("userNameInput").value.trim();
+  if (!name) { showToast("Enter your name first!"); return; }
+  localStorage.setItem("dm_user", name);
+  document.getElementById("welcomeModal").classList.remove("active");
+  showGreeting(name);
+  showToast(`Welcome, ${name}! 🎯`);
+};
+
+// Enter key on modal input
+document.getElementById("userNameInput").addEventListener("keypress", e => {
+  if (e.key === "Enter") saveName();
+});
+
+// ── SHARE ──────────────────────────────────────────────────────────
+function shareToWhatsApp() {
+  const title   = document.getElementById("wheelTitle").value.trim() || "the Ultimate Decision Maker";
+  const appLink = "https://blessingay962.github.io/DecisionMaker/";
+  const msg     = `I just used this AI app to settle '${title}'! 🔥 Spin the wheel yourself: ${appLink}`;
+  window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(msg), "_blank");
+}
+
+// ── KEYBOARD / EVENTS ─────────────────────────────────────────────
+addBtn.addEventListener("click", addOption);
+newOptionInput.addEventListener("keypress", e => { if (e.key === "Enter") addOption(); });
+spinBtn.addEventListener("click", spinWheel);
+</script>
+</body>
+</html>
